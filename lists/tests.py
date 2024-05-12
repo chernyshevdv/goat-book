@@ -11,7 +11,29 @@ class HomePageTest(TestCase):
     def test_can_save_a_POST_request(self):
         todo_text = "A new list item"
         response = self.client.post("/", data={"item_text": todo_text})
-        self.assertContains(response, todo_text)
+        self.assertEqual(Item.objects.count(), 1)
+        saved_item = Item.objects.first()
+        self.assertEqual(saved_item.text, todo_text)
+
+    def test_redirects_after_POST(self):
+        response = self.client.post("/", data={"item_text": "A new item"})
+        self.assertRedirects(response, "/")
+
+
+    def test_dont_save_empty_items(self):
+        response = self.client.get("/")
+        self.assertEqual(0, Item.objects.count())
+
+
+    def test_show_items_from_db(self):
+        todo_items = ["A todo number one", "A todo number to"]
+        for item in todo_items:
+            Item.objects.create(text=item)
+        
+        response = self.client.get("/")
+        for item in todo_items:
+            self.assertContains(response, item)
+
 
 class ItemModelTest(TestCase):
     def test_saving_and_retrieving_items(self):
