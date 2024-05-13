@@ -17,23 +17,29 @@ class HomePageTest(TestCase):
 
     def test_redirects_after_POST(self):
         response = self.client.post("/", data={"item_text": "A new item"})
-        self.assertRedirects(response, "/")
-
+        self.assertRedirects(response, "/lists/the-only-list-in-the-world/")
 
     def test_dont_save_empty_items(self):
         response = self.client.get("/")
         self.assertEqual(0, Item.objects.count())
 
 
-    def test_show_items_from_db(self):
+    
+
+class ListViewTest(TestCase):
+    def test_uses_list_template(self):
+        response = self.client.get("/lists/the-only-list-in-the-world/")
+        self.assertTemplateUsed(response, "list.html")
+
+
+    def test_displays_all_list_items(self):
         todo_items = ["A todo number one", "A todo number to"]
         for item in todo_items:
             Item.objects.create(text=item)
         
-        response = self.client.get("/")
+        response = self.client.get("/lists/the-only-list-in-the-world/")
         for item in todo_items:
             self.assertContains(response, item)
-
 
 class ItemModelTest(TestCase):
     def test_saving_and_retrieving_items(self):
