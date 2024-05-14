@@ -14,33 +14,42 @@ class HomePageTest(TestCase):
 
 
 class NewListTest(TestCase):
-    def test_can_save_a_POST_request(self):
+    def test_can_save_a_POST_request_to_an_existing_list(self):
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
         todo_text = "A new list item"
-        response = self.client.post("/lists/new", data={"item_text": todo_text})
+        response = self.client.post(f"/lists/{correct_list.id}/add_item", data={"item_text": todo_text})
         self.assertEqual(Item.objects.count(), 1)
         saved_item = Item.objects.get()
         self.assertEqual(saved_item.text, todo_text)
+        self.assertEqual(saved_item.list, correct_list)
 
-    def test_redirects_after_POST(self):
-        response = self.client.post("/lists/new", data={"item_text": "A new item"})
-        self.assertRedirects(response, "/lists/the-only-list-in-the-world/")
+    def test_redirects_to_list_view(self):
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+        response = self.client.post(f"/lists/{correct_list.id}/add_item", data={"item_text": "A new item"})
+        self.assertRedirects(response, f"/lists/{correct_list.id}/")
     
 
 class ListViewTest(TestCase):
     def test_uses_list_template(self):
-        response = self.client.get("/lists/the-only-list-in-the-world/")
+        my_list = List.objects.create()
+        response = self.client.get(f"/lists/{my_list.id}/")
         self.assertTemplateUsed(response, "list.html")
 
 
-    def test_displays_all_list_items(self):
-        list = List.objects.create()
+    def test_displays_only_items_for_that_list(self):
+        correct_list = List.objects.create()
         todo_items = ["A todo number one", "A todo number to"]
         for item in todo_items:
-            Item.objects.create(text=item, list=list)
+            Item.objects.create(text=item, list=correct_list)
         
-        response = self.client.get("/lists/the-only-list-in-the-world/")
+        other_list = List.objects.create()
+        Item.objects.create(text="Another list item", list=other_list)
+        response = self.client.get(f"/lists/{correct_list.id}/")
         for item in todo_items:
             self.assertContains(response, item)
+        self.assertNotContains(response, "Another list item")
 
 class ListAndItemModelsTest(TestCase):
     def test_saving_and_retrieving_items(self):
